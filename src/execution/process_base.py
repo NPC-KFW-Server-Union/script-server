@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import threading
+import psutil
 
 from react.observable import ReplayObservable
 from utils import os_utils
@@ -71,29 +72,37 @@ class ProcessWrapper(metaclass=abc.ABCMeta):
     def stop(self):
         if not self.is_finished():
             if not os_utils.is_win():
-                group_id = os.getpgid(self.get_process_id())
-                os.killpg(group_id, signal.SIGTERM)
+                psutil_self_proc = psutil.Process(self.get_process_id())
+                # Send SIGKILL to child processes.
+                for curr_sub_proc in psutil_self_proc.children(recursive=True):
+                    try:
+                        curr_sub_proc.terminate()
+                    except psutil.NoSuchProcess:
+                        pass
 
-                class KillChildren(object):
-                    def finished(self):
-                        try:
-                            os.killpg(group_id, signal.SIGKILL)
-                        except ProcessLookupError:
-                            # probably there are no children left
-                            pass
-
-                self.add_finish_listener(KillChildren())
+                # Send SIGTERM to self.
+                psutil_self_proc.terminate()
 
             else:
                 self.process.terminate()
 
             self._write_script_output('\n>> STOPPED BY USER\n')
 
+
     def kill(self):
         if not self.is_finished():
             if not os_utils.is_win():
-                group_id = os.getpgid(self.get_process_id())
-                os.killpg(group_id, signal.SIGKILL)
+                psutil_self_proc = psutil.Process(self.get_process_id())
+                # Send SIGKILL to child processes.
+                for curr_sub_proc in psutil_self_proc.children(recursive=True):
+                    try:
+                        curr_sub_proc.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+
+                # Send SIGTERM to self.
+                psutil_self_proc.kill()
+
                 self._write_script_output('\n>> KILLED\n')
             else:
                 subprocess.Popen("taskkill /F /T /PID " + self.get_process_id())
