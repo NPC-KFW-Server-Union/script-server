@@ -46,11 +46,11 @@ OS support:
 - Theoretically, any other UNIX system.
 
 #### About OpenBSD patch
-There's a patch for OpenBSD in branch `openbsd_patch`. It solves a issue running on OpenBSD: Terminating a script process is implemented with getting and 
+There's a [patch for OpenBSD ](https://github.com/NPC-KFW-Server-Union/script-server/). It solves a issue running on OpenBSD: Terminating a script process is implemented with getting and 
 killing the process group. You will get a permission denied error if you're running under a non-root user.
 This patch replace the way to terminate the script processes with finding and killing each of the script executor's subprocess.
 
-It will never merge into the master branch cause that's not portable and it's not a “reasonable” way to do that.
+It will never merge into the master branch of the original repo cause that's not portable and it's not a “reasonable” way to do that.
 It's more like a temporary workaround.
 
 This patch may takes effect on not only OpenBSD, but also other UNIX systems that have issues using `getpgid`.
